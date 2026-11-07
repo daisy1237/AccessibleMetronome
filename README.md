@@ -30,14 +30,16 @@ The application has been manually tested with **VoiceOver on macOS**, including 
 
 ## Keyboard Shortcuts
 
-| Shortcut    | Action                   |
-|-------------|--------------------------|
-| Space       | Start / Stop             |
-| ↑           | Previous time signature  |
-| ↓           | Next time signature      |
-| ←           | Decrease tempo           |
-| →           | Increase tempo           |
-| Tab         | Move to the next control |
+| Shortcut    | Action                       |
+|-------------|------------------------------|
+| Space       | Start / Stop                 |
+| ↑           | Previous time signature      |
+| ↓           | Next time signature          |
+| ←           | Decrease tempo               |
+| →           | Increase tempo               |
+| Tab         | Move to the next control     |
+| Shift + Tab | Move to the previous control |
+
 
 ## Technologies
 
