@@ -19,6 +19,7 @@ public class MetronomeUi extends javax.swing.JFrame {
     private final MetronomeService service;
 
     private JLabel bpmLabel;
+    private JLabel bpmUnitLabel;
     private JLabel statusLabel;
     private JButton startStopButton;
     private JButton increaseButton;
@@ -46,8 +47,8 @@ public class MetronomeUi extends javax.swing.JFrame {
 
     private void initializeFrame(){
         setTitle("Accessible Metronome");
-        setSize(500,550);
-        setMinimumSize(new Dimension(500,550));
+        setSize(480, 520);
+        setMinimumSize(new Dimension(450, 490));
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         addWindowListener(new java.awt.event.WindowAdapter() {
@@ -61,63 +62,122 @@ public class MetronomeUi extends javax.swing.JFrame {
     }
 
     private void initializeComponents(){
-        bpmLabel = new JLabel(settings.getBpm()+" bpm", SwingConstants.CENTER);
-        bpmLabel.setFont(new Font("SansSerif", Font.BOLD, 42));
+        bpmLabel = new JLabel(String.valueOf(settings.getBpm()), SwingConstants.CENTER);
+        bpmLabel.setFont(Theme.BPM_FONT);
+        bpmLabel.setForeground(Theme.TEXT);
+
+        bpmUnitLabel=new JLabel("bpm", SwingConstants.CENTER);
+        bpmUnitLabel.setFont(new Font("SansSerif", Font.BOLD, 14));
+        bpmLabel.setForeground(Theme.TEXT_SECONDARY);
 
         statusLabel=new JLabel("Metronome stopped", SwingConstants.CENTER);
-        statusLabel.setFont(new Font("SansSerif", Font.PLAIN, 16));
+        statusLabel.setFont(Theme.BODY_FONT);
+        statusLabel.setForeground(Theme.TEXT_SECONDARY);
 
-        decreaseButton=new JButton("-");
-        increaseButton=new JButton("+");
+        decreaseButton = new RoundedButton("−", Theme.CONTROL_BACKGROUND, Theme.PRIMARY);
+        increaseButton = new RoundedButton("+", Theme.CONTROL_BACKGROUND, Theme.PRIMARY);
 
-        startStopButton =new JButton("Start");
-        startStopButton.setFont(new Font("SansSerif", Font.BOLD, 20));
+        startStopButton = new RoundedButton("Start", Theme.PRIMARY, Theme.BUTTON_TEXT);
+        startStopButton.setFont(new Font("SansSerif", Font.BOLD, 18));
+        startStopButton.setPreferredSize(new Dimension(170, 52));
         startStopButton.setFocusPainted(true);
 
         timeSignatureCombo=new JComboBox<>(new String[]{"2/4","3/4","4/4"});
         timeSignatureCombo.setSelectedItem("4/4");
+        timeSignatureCombo.setFont(Theme.BODY_FONT);
+        timeSignatureCombo.setBackground(Theme.CONTROL_BACKGROUND);
+        timeSignatureCombo.setForeground(Theme.TEXT);
+        timeSignatureCombo.setPreferredSize(new Dimension(110, 42));
+
+        timeSignatureCombo.setRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+                JLabel label = (JLabel) super.getListCellRendererComponent(
+                        list, value, index, isSelected, cellHasFocus
+                );
+
+                label.setFont(Theme.BODY_FONT);
+                label.setOpaque(true);
+
+                if (isSelected && index >= 0) {
+                    label.setBackground(Theme.PRIMARY);
+                    label.setForeground(Color.WHITE);
+                } else {
+                    label.setBackground(Theme.CONTROL_BACKGROUND);
+                    label.setForeground(Theme.TEXT);
+                }
+
+                label.setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 12));
+                return label;
+            }
+        });
 
         beatPanel=new JPanel(new FlowLayout(FlowLayout.CENTER,12,5));
         updateBeatIndicator(null);
     }
 
     private void layoutComponents(){
-        JPanel mainPanel=new JPanel();
+        JPanel backgroundPanel=new JPanel(new GridLayout());
+        backgroundPanel.setBackground(Theme.BACKGROUND);
+        backgroundPanel.setBorder(new EmptyBorder(15,15,15,15));
+
+        JPanel mainPanel=new RoundedPanel(30);
         mainPanel.setLayout(new BoxLayout(mainPanel,BoxLayout.Y_AXIS));
-        mainPanel.setBorder(new EmptyBorder(30,30,30,30));
+        mainPanel.setBackground(Theme.SURFACE);
+        mainPanel.setBorder(new EmptyBorder(25,25,25,25));
 
         JLabel titleLabel=new JLabel("METRONOME",SwingConstants.CENTER);
-        titleLabel.setFont(new Font("SansSerif", Font.BOLD, 22));
+        titleLabel.setFont(Theme.TITLE_FONT);
         titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        titleLabel.setForeground(Theme.TEXT);
 
         bpmLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        bpmUnitLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         statusLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
         JPanel tempoPanel=new JPanel(new FlowLayout(FlowLayout.CENTER,20,5));
+        tempoPanel.setBackground(Theme.SURFACE);
+
+        JPanel bpmDisplayPanel=new JPanel();
+        bpmDisplayPanel.setLayout(new BoxLayout(bpmDisplayPanel,BoxLayout.Y_AXIS));
+        bpmDisplayPanel.setOpaque(false);
+        bpmDisplayPanel.add(bpmLabel);
+        bpmDisplayPanel.add(bpmUnitLabel);
+        bpmDisplayPanel.setPreferredSize(new Dimension(130,95));
+
         tempoPanel.add(decreaseButton);
-        tempoPanel.add(bpmLabel);
+        tempoPanel.add(bpmDisplayPanel);
         tempoPanel.add(increaseButton);
 
         JPanel signaturePanel=new JPanel(new FlowLayout(FlowLayout.CENTER,10,5));
-        signaturePanel.add(new JLabel("Time Signature:"));
+        signaturePanel.setBackground(Theme.SURFACE);
+        JLabel signatureLabel = new JLabel("Time signature:");
+        signatureLabel.setFont(Theme.BODY_FONT);
+        signatureLabel.setForeground(Theme.TEXT_SECONDARY);
+        signaturePanel.add(signatureLabel);
         signaturePanel.add(timeSignatureCombo);
 
         JPanel controlPanel=new JPanel(new FlowLayout(FlowLayout.CENTER));
+        controlPanel.setBackground(Theme.SURFACE);
         controlPanel.add(startStopButton);
 
+        beatPanel.setBackground(Theme.SURFACE);
+
         mainPanel.add(titleLabel);
-        mainPanel.add(Box.createVerticalStrut(35));
-        mainPanel.add(tempoPanel);
-        mainPanel.add(Box.createVerticalStrut(20));
-        mainPanel.add(signaturePanel);
-        mainPanel.add(Box.createVerticalStrut(20));
-        mainPanel.add(beatPanel);
         mainPanel.add(Box.createVerticalStrut(25));
-        mainPanel.add(controlPanel);
+        mainPanel.add(tempoPanel);
         mainPanel.add(Box.createVerticalStrut(15));
+        mainPanel.add(signaturePanel);
+        mainPanel.add(Box.createVerticalStrut(15));
+        mainPanel.add(beatPanel);
+        mainPanel.add(Box.createVerticalStrut(20));
+        mainPanel.add(controlPanel);
+        mainPanel.add(Box.createVerticalStrut(10));
         mainPanel.add(statusLabel);
 
-        add(mainPanel);
+        backgroundPanel.add(mainPanel);
+
+        setContentPane(backgroundPanel);
     }
 
     private void registerListeners(){
@@ -137,7 +197,7 @@ public class MetronomeUi extends javax.swing.JFrame {
         int newBpm=settings.getBpm()+delta;
         if(newBpm<MetronomeSettings.MIN_BPM ||  newBpm>MetronomeSettings.MAX_BPM){ return; }
         settings.setBpm(newBpm);
-        bpmLabel.setText(newBpm+" bpm");
+        bpmLabel.setText(String.valueOf(newBpm));
         bpmLabel.getAccessibleContext().setAccessibleDescription("Current tempo: "+newBpm+" beats per minute.");
         if(running){
             service.stop();
@@ -152,11 +212,15 @@ public class MetronomeUi extends javax.swing.JFrame {
             startStopButton.setText("Start");
             statusLabel.setText("Metronome stopped");
             updateBeatIndicator(null);
+            ((RoundedButton) startStopButton)
+                    .setButtonBackground(Theme.PRIMARY);
         } else {
             service.start();
             running=true;
             startStopButton.setText("Stop");
             statusLabel.setText("Metronome running");
+            ((RoundedButton) startStopButton)
+                    .setButtonBackground(Theme.STOP_BACKGROUND);
         }
 
         startStopButton.getAccessibleContext().setAccessibleName(
@@ -175,6 +239,9 @@ public class MetronomeUi extends javax.swing.JFrame {
 
         int beatsPerMeasure=settings.getBeatsPerMeasure();
 
+        beatPanel.setLayout(new FlowLayout(FlowLayout.CENTER, 18, 5));
+        beatPanel.setBackground(Theme.SURFACE);
+
         for(int i=1;i<=settings.getBeatsPerMeasure();i++){
             JPanel beatColumn=new JPanel();
             beatColumn.setLayout(new BoxLayout(beatColumn,BoxLayout.Y_AXIS));
@@ -184,18 +251,20 @@ public class MetronomeUi extends javax.swing.JFrame {
 
             JLabel arrow=new  JLabel(active?"▼" : " ");
             arrow.setFont(new Font("SansSerif", Font.BOLD, 15));
-            arrow.setForeground(Color.BLACK);
+            arrow.setForeground(Theme.ACCENT);
             arrow.setAlignmentX(Component.CENTER_ALIGNMENT);
 
             JLabel indicator=new JLabel("●");
             indicator.setFont(new Font("SansSerif", Font.BOLD, 26));
             indicator.setForeground(active
-                    ? new Color(246, 20, 20)
-                    : new Color(15, 188, 50, 255));
+                    ? Theme.BEAT_ACTIVE
+                    : Theme.BEAT_INACTIVE);
             indicator.setAlignmentX(Component.CENTER_ALIGNMENT);
 
             beatColumn.add(arrow);
+            beatColumn.add(Box.createVerticalStrut(4));
             beatColumn.add(indicator);
+            beatColumn.add(Box.createVerticalStrut(4));
 
             beatPanel.add(beatColumn);
         }
@@ -284,15 +353,15 @@ public class MetronomeUi extends javax.swing.JFrame {
     }
 
     private void configureFocusIndicator(){
-        addFocusIndicator(decreaseButton);
-        addFocusIndicator(increaseButton);
-        addFocusIndicator(startStopButton);
+        //addFocusIndicator(decreaseButton);
+        //addFocusIndicator(increaseButton);
+        //addFocusIndicator(startStopButton);
         addFocusIndicator(timeSignatureCombo);
     }
 
     private void addFocusIndicator(JComponent component){
         Border originalBorder = component.getBorder();
-        Border focusBorder = BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(new Color(4, 57, 227),3), originalBorder);
+        Border focusBorder = BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(Theme.FOCUS,3), originalBorder);
 
         component.addFocusListener(new FocusAdapter() {
             @Override
