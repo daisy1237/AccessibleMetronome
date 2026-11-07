@@ -6,8 +6,12 @@ import service.*;
 
 import javax.sound.sampled.LineUnavailableException;
 import javax.swing.*;
+import javax.swing.border.Border;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
+import javax.accessibility.*;
 
 public class MetronomeUi extends javax.swing.JFrame {
     private final MetronomeSettings settings;
@@ -35,6 +39,9 @@ public class MetronomeUi extends javax.swing.JFrame {
         initializeComponents();
         layoutComponents();
         registerListeners();
+        configureAccessibility();
+        configureKeyboardShortcuts();
+        configureFocusIndicator();
     }
 
     private void initializeFrame(){
@@ -65,6 +72,7 @@ public class MetronomeUi extends javax.swing.JFrame {
 
         startStopButton =new JButton("Start");
         startStopButton.setFont(new Font("SansSerif", Font.BOLD, 20));
+        startStopButton.setFocusPainted(true);
 
         timeSignatureCombo=new JComboBox<>(new String[]{"2/4","3/4","4/4"});
         timeSignatureCombo.setSelectedItem("4/4");
@@ -130,6 +138,7 @@ public class MetronomeUi extends javax.swing.JFrame {
         if(newBpm<MetronomeSettings.MIN_BPM ||  newBpm>MetronomeSettings.MAX_BPM){ return; }
         settings.setBpm(newBpm);
         bpmLabel.setText(newBpm+" bpm");
+        bpmLabel.getAccessibleContext().setAccessibleDescription("Current tempo: "+newBpm+" beats per minute.");
         if(running){
             service.stop();
             service.start();
@@ -149,24 +158,151 @@ public class MetronomeUi extends javax.swing.JFrame {
             startStopButton.setText("Stop");
             statusLabel.setText("Metronome running");
         }
+
+        startStopButton.getAccessibleContext().setAccessibleName(
+                running ? "Stop metronome" : "Start metronome"
+        );
+
+        statusLabel.getAccessibleContext().setAccessibleDescription(
+                running
+                        ? "The metronome is currently running."
+                        : "The metronome is currently stopped."
+        );
     }
 
     private void updateBeatIndicator(Beat beat){
         beatPanel.removeAll();
 
+        int beatsPerMeasure=settings.getBeatsPerMeasure();
+
         for(int i=1;i<=settings.getBeatsPerMeasure();i++){
-            JLabel indicator=new JLabel("●");
-            indicator.setFont(new Font("SansSerif", Font.BOLD, 26));
+            JPanel beatColumn=new JPanel();
+            beatColumn.setLayout(new BoxLayout(beatColumn,BoxLayout.Y_AXIS));
+            beatColumn.setOpaque(false);
 
             boolean active = beat!=null && beat.getBeatNumber()==i;
 
-            indicator.setForeground(active?Color.GREEN:Color.RED);
+            JLabel arrow=new  JLabel(active?"▼" : " ");
+            arrow.setFont(new Font("SansSerif", Font.BOLD, 15));
+            arrow.setForeground(Color.BLACK);
+            arrow.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-            beatPanel.add(indicator);
+            JLabel indicator=new JLabel("●");
+            indicator.setFont(new Font("SansSerif", Font.BOLD, 26));
+            indicator.setForeground(active
+                    ? new Color(246, 20, 20)
+                    : new Color(15, 188, 50, 255));
+            indicator.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+            beatColumn.add(arrow);
+            beatColumn.add(indicator);
+
+            beatPanel.add(beatColumn);
         }
 
         beatPanel.revalidate();
         beatPanel.repaint();
+
+        String description = beat==null ? "No active beat." : "Beat "+beat.getBeatNumber()+" of "+beatsPerMeasure+(beat.isAccented()?", accented.":".");
+
+        beatPanel.getAccessibleContext().setAccessibleDescription(description);
     }
 
+    private void configureAccessibility(){
+        decreaseButton.getAccessibleContext().setAccessibleName("Decrease tempo");
+        decreaseButton.getAccessibleContext().setAccessibleDescription("Decrease the tempo by one beat per minute.");
+
+        increaseButton.getAccessibleContext().setAccessibleName("Increase tempo");
+        increaseButton.getAccessibleContext().setAccessibleDescription("Increase the tempo by one beat per minute.");
+
+        startStopButton.getAccessibleContext().setAccessibleName("Start metronome");
+        startStopButton.getAccessibleContext().setAccessibleDescription("Start or stop the metronome playback.");
+
+        timeSignatureCombo.getAccessibleContext().setAccessibleName("Time Signature");
+        timeSignatureCombo.getAccessibleContext().setAccessibleDescription("Choose between two-four, three-four and four-four time signatures.");
+
+        bpmLabel.getAccessibleContext().setAccessibleName("Current tempo");
+        bpmLabel.getAccessibleContext().setAccessibleDescription("Current tempo: "+settings.getBpm()+" beats per minute.");
+
+        statusLabel.getAccessibleContext().setAccessibleName("Metronome status");
+        statusLabel.getAccessibleContext().setAccessibleDescription("The metronome is currently stopped.");
+    }
+
+    private void configureKeyboardShortcuts(){
+        JRootPane root = getRootPane();
+
+        InputMap inputMap = root.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
+        ActionMap actionMap = root.getActionMap();
+
+        inputMap.put(KeyStroke.getKeyStroke("SPACE"),"toggleMetronome");
+        actionMap.put("toggleMetronome", new AbstractAction(){
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent e) {
+                toggleMetronome();
+            }
+        });
+
+        inputMap.put(KeyStroke.getKeyStroke("RIGHT"),"increaseTempo");
+        actionMap.put("increaseTempo", new AbstractAction(){
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent e) {
+                changeBpm(1);
+            }
+        });
+
+        inputMap.put(KeyStroke.getKeyStroke("LEFT"),"decreaseTempo");
+        actionMap.put("decreaseTempo", new AbstractAction(){
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent e) {
+                changeBpm(-1);
+            }
+        });
+
+        inputMap.put(KeyStroke.getKeyStroke("UP"),"previousTimeSignature");
+        actionMap.put("previousTimeSignature", new AbstractAction(){
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent e) {
+                changeTimeSignature(-1);
+            }
+        });
+
+        inputMap.put(KeyStroke.getKeyStroke("DOWN"),"nextTimeSignature");
+        actionMap.put("nextTimeSignature", new AbstractAction(){
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent e) {
+                changeTimeSignature(1);
+            }
+        });
+    }
+
+    private void changeTimeSignature(int delta){
+        int currentIndex=timeSignatureCombo.getSelectedIndex();
+        int newIndex=currentIndex+delta;
+        if(newIndex>=0 && newIndex<timeSignatureCombo.getItemCount()){
+            timeSignatureCombo.setSelectedIndex(newIndex);
+        }
+    }
+
+    private void configureFocusIndicator(){
+        addFocusIndicator(decreaseButton);
+        addFocusIndicator(increaseButton);
+        addFocusIndicator(startStopButton);
+        addFocusIndicator(timeSignatureCombo);
+    }
+
+    private void addFocusIndicator(JComponent component){
+        Border originalBorder = component.getBorder();
+        Border focusBorder = BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(new Color(4, 57, 227),3), originalBorder);
+
+        component.addFocusListener(new FocusAdapter() {
+            @Override
+            public void focusGained(FocusEvent e){
+                component.setBorder(focusBorder);
+            }
+            @Override
+            public void focusLost(FocusEvent e){
+                component.setBorder(originalBorder);
+            }
+        });
+    }
 }
