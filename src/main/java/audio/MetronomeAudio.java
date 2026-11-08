@@ -10,9 +10,12 @@ public class MetronomeAudio implements AutoCloseable {
 
     private final Clip normalClip;
     private final Clip accentedClip;
+    private final Clip secondaryClip;
+    private boolean muted=false;
 
     public MetronomeAudio() throws LineUnavailableException {
         normalClip = createClip(800);
+        secondaryClip = createClip(1000);
         accentedClip = createClip(1200);
     }
 
@@ -44,7 +47,25 @@ public class MetronomeAudio implements AutoCloseable {
     }
 
     public synchronized void playBeat(Beat beat) {
-        Clip clip=beat.isAccented() ? accentedClip : normalClip;
+        if (muted) {
+            return;
+        }
+
+        Clip clip;
+
+        switch (beat.getAccentType()) {
+            case PRIMARY:
+                clip = accentedClip;
+                break;
+            case SECONDARY:
+                clip = secondaryClip;
+                break;
+            case NONE:
+            default:
+                clip = normalClip;
+                break;
+        }
+
         clip.stop();
         clip.setFramePosition(0);
         clip.start();
@@ -53,6 +74,24 @@ public class MetronomeAudio implements AutoCloseable {
     @Override
     public synchronized void close(){
         normalClip.stop();
+        secondaryClip.stop();
         accentedClip.stop();
+
+        normalClip.close();
+        secondaryClip.close();
+        accentedClip.close();
+    }
+
+    public synchronized void setMuted(boolean muted) {
+        this.muted = muted;
+        if (muted) {
+            normalClip.stop();
+            secondaryClip.stop();
+            accentedClip.stop();
+        }
+    }
+
+    public synchronized boolean isMuted() {
+        return muted;
     }
 }

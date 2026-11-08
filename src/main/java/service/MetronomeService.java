@@ -1,5 +1,6 @@
 package service;
 
+import domain.AccentType;
 import domain.Beat;
 import domain.MetronomeSettings;
 
@@ -37,8 +38,8 @@ public class MetronomeService {
         if(!running) { return; }
         currentBeat++;
         if(currentBeat>settings.getBeatsPerMeasure()) { currentBeat=1;}
-        boolean accented = (currentBeat==1);
-        Beat beat = new Beat(currentBeat,accented);
+        AccentType accentType = getAccentType(currentBeat);
+        Beat beat = new Beat(currentBeat, accentType);
         beatListener.accept(beat);
     }
 
@@ -58,5 +59,31 @@ public class MetronomeService {
 
     public synchronized boolean isRunning() {
         return running;
+    }
+
+    private AccentType getAccentType(int beatNumber) {
+        if (beatNumber == 1) { return AccentType.PRIMARY; }
+
+        int beats = settings.getBeatsPerMeasure();
+        int unit = settings.getBeatUnit();
+
+        if (unit == 4 && beats == 5) {
+            return beatNumber == 4 ? AccentType.SECONDARY : AccentType.NONE;
+        }
+
+        if (unit == 8) {
+            if (beats == 6 || beats == 9 || beats == 12) {
+                return (beatNumber - 1) % 3 == 0 ? AccentType.SECONDARY : AccentType.NONE;
+            }
+            if (beats == 7) {
+                return (beatNumber == 3 || beatNumber == 5) ? AccentType.SECONDARY : AccentType.NONE;
+            }
+        }
+
+        return AccentType.NONE;
+    }
+
+    public synchronized void resetBeat() {
+        currentBeat = 0;
     }
 }

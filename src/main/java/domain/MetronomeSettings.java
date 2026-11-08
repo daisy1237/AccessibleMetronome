@@ -8,6 +8,7 @@ public class MetronomeSettings {
 
     private int bpm;
     private int beatsPerMeasure; // for now supports only 2/4, 3/4 or 4/4 time signatures
+    private int beatUnit=4;
 
     public MetronomeSettings() {
         this(DEFAULT_BPM, DEFAULT_BEATS_PER_MEASURE);
@@ -34,10 +35,21 @@ public class MetronomeSettings {
     }
 
     public void setBeatsPerMeasure(int beatsPerMeasure) {
-        if(beatsPerMeasure <2 || beatsPerMeasure >4) {
-            throw new IllegalArgumentException("Invalid beats per measure value: must be 2, 3 or 4.");
+        if(beatsPerMeasure <2 || beatsPerMeasure >12) {
+            throw new IllegalArgumentException("Invalid beats per measure value: must be between 2 and 12.");
         }
         this.beatsPerMeasure = beatsPerMeasure;
+    }
+
+    public int getBeatUnit() {
+        return beatUnit;
+    }
+
+    public void setBeatUnit(int beatUnit) {
+        if(beatUnit!=4 && beatUnit!=8) {
+            throw new IllegalArgumentException("Invalid beats unit value: must be 4 or 8.");
+        }
+        this.beatUnit = beatUnit;
     }
 
 }

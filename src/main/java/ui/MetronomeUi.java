@@ -26,8 +26,11 @@ public class MetronomeUi extends javax.swing.JFrame {
     private JButton decreaseButton;
     private JComboBox<String> timeSignatureCombo;
     private JPanel beatPanel;
+    private JButton muteButton;
 
     private boolean running=false;
+
+    private static final String[] TIME_SIGNATURES = {"2/4","3/4","4/4","5/4","6/8","7/8","9/8","12/8"};
 
     public MetronomeUi() throws LineUnavailableException {
         settings = new MetronomeSettings();
@@ -82,7 +85,12 @@ public class MetronomeUi extends javax.swing.JFrame {
         startStopButton.setPreferredSize(new Dimension(170, 52));
         startStopButton.setFocusPainted(true);
 
-        timeSignatureCombo=new JComboBox<>(new String[]{"2/4","3/4","4/4"});
+        muteButton=new RoundedButton("", Theme.CONTROL_BACKGROUND, Theme.PRIMARY);
+        muteButton.setIcon(new VolumeIcon(false,Theme.PRIMARY));
+        muteButton.setPreferredSize(new Dimension(54, 52));
+        muteButton.setToolTipText("Mute sound");
+
+        timeSignatureCombo = new JComboBox<>(TIME_SIGNATURES);
         timeSignatureCombo.setSelectedItem("4/4");
         timeSignatureCombo.setFont(Theme.BODY_FONT);
         timeSignatureCombo.setBackground(Theme.CONTROL_BACKGROUND);
@@ -160,6 +168,7 @@ public class MetronomeUi extends javax.swing.JFrame {
         JPanel controlPanel=new JPanel(new FlowLayout(FlowLayout.CENTER));
         controlPanel.setBackground(Theme.SURFACE);
         controlPanel.add(startStopButton);
+        controlPanel.add(muteButton);
 
         beatPanel.setBackground(Theme.SURFACE);
 
@@ -185,12 +194,28 @@ public class MetronomeUi extends javax.swing.JFrame {
         increaseButton.addActionListener(e -> changeBpm(1));
 
         timeSignatureCombo.addActionListener(e -> {
-            int selected=timeSignatureCombo.getSelectedIndex()+2;
-            settings.setBeatsPerMeasure(selected);
+            String selected = (String) timeSignatureCombo.getSelectedItem();
+
+            if (selected == null) {
+                return;
+            }
+
+            String[] parts = selected.split("/");
+
+            int beats = Integer.parseInt(parts[0]);
+            int unit = Integer.parseInt(parts[1]);
+
+            settings.setBeatsPerMeasure(beats);
+            settings.setBeatUnit(unit);
+
+            service.resetBeat();
+
             updateBeatIndicator(null);
         });
 
         startStopButton.addActionListener(e -> toggleMetronome());
+
+        muteButton.addActionListener(e -> toggleMute());
     }
 
     private void changeBpm(int delta){
@@ -288,13 +313,18 @@ public class MetronomeUi extends javax.swing.JFrame {
         startStopButton.getAccessibleContext().setAccessibleDescription("Start or stop the metronome playback.");
 
         timeSignatureCombo.getAccessibleContext().setAccessibleName("Time Signature");
-        timeSignatureCombo.getAccessibleContext().setAccessibleDescription("Choose between two-four, three-four and four-four time signatures.");
+        timeSignatureCombo.getAccessibleContext().setAccessibleDescription("Select a time signature. Use up and down arrow keys to change it.");
 
         bpmLabel.getAccessibleContext().setAccessibleName("Current tempo");
         bpmLabel.getAccessibleContext().setAccessibleDescription("Current tempo: "+settings.getBpm()+" beats per minute.");
 
         statusLabel.getAccessibleContext().setAccessibleName("Metronome status");
         statusLabel.getAccessibleContext().setAccessibleDescription("The metronome is currently stopped.");
+
+        muteButton.getAccessibleContext().setAccessibleName("Mute sound");
+        muteButton.getAccessibleContext().setAccessibleDescription(
+                "Sound is enabled. Press M or activate this button to mute sound."
+        );
     }
 
     private void configureKeyboardShortcuts(){
@@ -342,6 +372,14 @@ public class MetronomeUi extends javax.swing.JFrame {
                 changeTimeSignature(1);
             }
         });
+
+        inputMap.put(KeyStroke.getKeyStroke("M"),"toggleMute");
+        actionMap.put("toggleMute", new AbstractAction(){
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent e) {
+                toggleMute();
+            }
+        });
     }
 
     private void changeTimeSignature(int delta){
@@ -374,4 +412,18 @@ public class MetronomeUi extends javax.swing.JFrame {
             }
         });
     }
+
+    private void toggleMute(){
+        boolean muted = !audio.isMuted();
+        audio.setMuted(muted);
+        muteButton.setIcon(new VolumeIcon(muted,Theme.PRIMARY));
+        muteButton.setToolTipText(muted?"Unmute":"Mute");
+        muteButton.getAccessibleContext().setAccessibleName(muted?"Unmute sound":"Mute sound");
+        muteButton.getAccessibleContext().setAccessibleDescription(
+                muted
+                        ? "Sound is muted. Press M or activate this button to enable sound."
+                        : "Sound is enabled. Press M or activate this button to mute sound."
+        );
+    }
+
 }
