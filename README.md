@@ -7,11 +7,13 @@ The application helps musicians practice rhythm and timing while providing an in
 ## Features
 
 - **Adjustable tempo:** Set the tempo between 40 and 220 BPM, with a default of 100 BPM.
-- **Time signatures:** Choose between 2/4, 3/4, and 4/4.
+- **Time signatures:** Choose between 2/4, 3/4, 4/4 and many more.
 - **Audio feedback:** Hear rhythmic clicks, with a distinct sound for the first beat of each measure.
 - **Visual beat indicator:** Follow the current beat using a moving arrow positioned above the beat indicators.
 - **Playback controls:** Start and stop the metronome at any time.
 - **Real-time tempo adjustment:** Change BPM while the metronome is running.
+- **Tempo presets:** Available presets, plus Custom.
+- **Keyboard accessibility:** Control the metronome through the keyboard.
 
 ## Accessibility
 
@@ -39,7 +41,7 @@ The application has been manually tested with **VoiceOver on macOS**, including 
 | →           | Increase tempo               |
 | Tab         | Move to the next control     |
 | Shift + Tab | Move to the previous control |
-
+| M           | Mute / Unmute sound          |
 
 ## Technologies
 
@@ -95,10 +97,4 @@ The application follows a layered architecture:
 3. Allow Gradle to import and synchronize the project.
 
 4. Run `Main.java`.
-
-## Future Improvements
-
-- Additional time signatures.
-- Adjustable volume and sound customization.
-- More extensive accessibility testing across operating systems.
 

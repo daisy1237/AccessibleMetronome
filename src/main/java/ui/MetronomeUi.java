@@ -25,12 +25,16 @@ public class MetronomeUi extends javax.swing.JFrame {
     private JButton increaseButton;
     private JButton decreaseButton;
     private JComboBox<String> timeSignatureCombo;
+    private JComboBox<String> tempoPresetCombo;
     private JPanel beatPanel;
     private JButton muteButton;
 
     private boolean running=false;
 
     private static final String[] TIME_SIGNATURES = {"2/4","3/4","4/4","5/4","6/8","7/8","9/8","12/8"};
+    private static final String[] TEMPO_PRESETS = {
+            "Custom", "60", "80", "100", "120", "140", "160", "180"
+    };
 
     public MetronomeUi() throws LineUnavailableException {
         settings = new MetronomeSettings();
@@ -50,8 +54,8 @@ public class MetronomeUi extends javax.swing.JFrame {
 
     private void initializeFrame(){
         setTitle("Accessible Metronome");
-        setSize(480, 520);
-        setMinimumSize(new Dimension(450, 490));
+        setSize(500, 620);
+        setMinimumSize(new Dimension(480, 580));
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         addWindowListener(new java.awt.event.WindowAdapter() {
@@ -120,6 +124,43 @@ public class MetronomeUi extends javax.swing.JFrame {
             }
         });
 
+        tempoPresetCombo = new JComboBox<>(TEMPO_PRESETS);
+        tempoPresetCombo.setSelectedItem(
+                String.valueOf(settings.getBpm())
+        );
+        tempoPresetCombo.setFont(Theme.BODY_FONT);
+        tempoPresetCombo.setBackground(Theme.CONTROL_BACKGROUND);
+        tempoPresetCombo.setForeground(Theme.TEXT);
+        tempoPresetCombo.setPreferredSize(new Dimension(110, 42));
+        tempoPresetCombo.setFocusable(true);
+        tempoPresetCombo.setRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(
+                    JList<?> list,
+                    Object value,
+                    int index,
+                    boolean isSelected,
+                    boolean cellHasFocus) {
+
+                JLabel label = (JLabel) super.getListCellRendererComponent(
+                        list, value, index, isSelected, cellHasFocus
+                );
+
+                if (isSelected && index >= 0) {
+                    label.setBackground(Theme.PRIMARY);
+                    label.setForeground(Color.WHITE);
+                } else {
+                    label.setBackground(Theme.CONTROL_BACKGROUND);
+                    label.setForeground(Theme.TEXT);
+                }
+
+                label.setOpaque(true);
+                label.setBorder(new EmptyBorder(8, 12, 8, 12));
+
+                return label;
+            }
+        });
+
         beatPanel=new JPanel(new FlowLayout(FlowLayout.CENTER,12,5));
         updateBeatIndicator(null);
     }
@@ -165,6 +206,14 @@ public class MetronomeUi extends javax.swing.JFrame {
         signaturePanel.add(signatureLabel);
         signaturePanel.add(timeSignatureCombo);
 
+        JPanel presetPanel=new JPanel(new FlowLayout(FlowLayout.CENTER,12,0));
+        presetPanel.setOpaque(false);
+        JLabel presetLabel = new JLabel("Tempo preset:");
+        presetLabel.setFont(Theme.BODY_FONT);
+        presetLabel.setForeground(Theme.TEXT_SECONDARY);
+        presetPanel.add(presetLabel);
+        presetPanel.add(tempoPresetCombo);
+
         JPanel controlPanel=new JPanel(new FlowLayout(FlowLayout.CENTER));
         controlPanel.setBackground(Theme.SURFACE);
         controlPanel.add(startStopButton);
@@ -175,6 +224,8 @@ public class MetronomeUi extends javax.swing.JFrame {
         mainPanel.add(titleLabel);
         mainPanel.add(Box.createVerticalStrut(25));
         mainPanel.add(tempoPanel);
+        mainPanel.add(Box.createVerticalStrut(12));
+        mainPanel.add(presetPanel);
         mainPanel.add(Box.createVerticalStrut(15));
         mainPanel.add(signaturePanel);
         mainPanel.add(Box.createVerticalStrut(15));
@@ -216,18 +267,16 @@ public class MetronomeUi extends javax.swing.JFrame {
         startStopButton.addActionListener(e -> toggleMetronome());
 
         muteButton.addActionListener(e -> toggleMute());
+
+        tempoPresetCombo.addActionListener(e -> {
+            String selected = (String) tempoPresetCombo.getSelectedItem();
+            if (selected == null || selected.equals("Custom")) {return;}
+            setBpm(Integer.parseInt(selected));
+        });
     }
 
-    private void changeBpm(int delta){
-        int newBpm=settings.getBpm()+delta;
-        if(newBpm<MetronomeSettings.MIN_BPM ||  newBpm>MetronomeSettings.MAX_BPM){ return; }
-        settings.setBpm(newBpm);
-        bpmLabel.setText(String.valueOf(newBpm));
-        bpmLabel.getAccessibleContext().setAccessibleDescription("Current tempo: "+newBpm+" beats per minute.");
-        if(running){
-            service.stop();
-            service.start();
-        }
+    private void changeBpm(int delta) {
+        setBpm(settings.getBpm() + delta);
     }
 
     private void toggleMetronome(){
@@ -325,6 +374,9 @@ public class MetronomeUi extends javax.swing.JFrame {
         muteButton.getAccessibleContext().setAccessibleDescription(
                 "Sound is enabled. Press M or activate this button to mute sound."
         );
+
+        tempoPresetCombo.getAccessibleContext().setAccessibleName("Tempo preset");
+        tempoPresetCombo.getAccessibleContext().setAccessibleDescription("Select a predefined tempo in beats per minute.");
     }
 
     private void configureKeyboardShortcuts(){
@@ -426,4 +478,35 @@ public class MetronomeUi extends javax.swing.JFrame {
         );
     }
 
+    private void setBpm(int bpm) {
+        if (bpm < 40 || bpm > 220) {return;}
+
+        if (settings.getBpm() == bpm) {return;}
+
+        settings.setBpm(bpm);
+        bpmLabel.setText(String.valueOf(bpm));
+        updateTempoPresetSelection();
+
+        bpmLabel.getAccessibleContext().setAccessibleDescription(
+                "Current tempo: " + bpm + " beats per minute."
+        );
+
+        if (running) {
+            service.stop();
+            service.start();
+        }
+    }
+
+    private void updateTempoPresetSelection() {
+        String currentBpm = String.valueOf(settings.getBpm());
+
+        for (String preset : TEMPO_PRESETS) {
+            if (preset.equals(currentBpm)) {
+                tempoPresetCombo.setSelectedItem(currentBpm);
+                return;
+            }
+        }
+
+        tempoPresetCombo.setSelectedItem("Custom");
+    }
 }
